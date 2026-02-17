@@ -54,6 +54,7 @@ class BubbleService : AccessibilityService() {
     private var bubbleView: View? = null
     private var promptView: View? = null
     private var popupMenuView: View? = null
+    private var promptParams: WindowManager.LayoutParams? = null
     private var isPromptShowing = false
     private var isPopupShowing = false
 
@@ -324,15 +325,21 @@ class BubbleService : AccessibilityService() {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             layoutType,
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                    WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM,
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.CENTER
-            softInputMode = WindowManager.LayoutParams.SOFT_INPUT_STATE_UNCHANGED
+            softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
         }
 
+        promptParams = params
         setupPromptViews(context)
+
+        // Force system navigation bar to stay visible
+        promptView?.systemUiVisibility =
+            View.SYSTEM_UI_FLAG_VISIBLE or
+            View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+
         windowManager.addView(promptView, params)
         isPromptShowing = true
     }
