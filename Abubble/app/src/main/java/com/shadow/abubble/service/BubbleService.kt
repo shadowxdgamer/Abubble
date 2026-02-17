@@ -324,8 +324,7 @@ class BubbleService : AccessibilityService() {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             layoutType,
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                    WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.CENTER
@@ -360,16 +359,6 @@ class BubbleService : AccessibilityService() {
 
         // Close button
         btnClose.setOnClickListener { removePrompt() }
-
-        // Dismiss on outside touch
-        view.setOnTouchListener { _, motionEvent ->
-            if (motionEvent.action == MotionEvent.ACTION_OUTSIDE) {
-                removePrompt()
-                true
-            } else {
-                false
-            }
-        }
 
         // Go button
         btnGo.setOnClickListener {
@@ -412,8 +401,12 @@ class BubbleService : AccessibilityService() {
                     progressLoading.visibility = View.GONE
                     btnGo.isEnabled = true
                     btnGo.alpha = 1.0f
-                    pasteResult(result)
+                    // Dismiss our overlay first so the original app's text field regains focus,
+                    // then wait a beat before pasting into it.
                     removePrompt()
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        pasteResult(result)
+                    }, 750)
                 },
                 onError = { error ->
                     progressLoading.visibility = View.GONE

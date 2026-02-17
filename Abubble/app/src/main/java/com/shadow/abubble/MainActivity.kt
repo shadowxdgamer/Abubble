@@ -129,6 +129,15 @@ class MainActivity : ComponentActivity() {
         if (service != null) {
             service.showBubble()
             Toast.makeText(this, "Bubble launched!", Toast.LENGTH_SHORT).show()
+        } else if (isAccessibilityServiceEnabled()) {
+            // Service is enabled in Settings but the process isn't alive (common on Xiaomi/Redmi).
+            // Toggling the service off→on forces Android to restart it.
+            Toast.makeText(
+                this,
+                "Service is enabled but not running. Please toggle it off and on in Accessibility settings.",
+                Toast.LENGTH_LONG
+            ).show()
+            openAccessibilitySettings()
         } else {
             Toast.makeText(this, "Enable the Accessibility Service first", Toast.LENGTH_LONG).show()
         }
