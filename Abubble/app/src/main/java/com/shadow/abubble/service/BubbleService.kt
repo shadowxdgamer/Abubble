@@ -324,11 +324,12 @@ class BubbleService : AccessibilityService() {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             layoutType,
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                    WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.CENTER
-            softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+            softInputMode = WindowManager.LayoutParams.SOFT_INPUT_STATE_UNCHANGED
         }
 
         setupPromptViews(context)
