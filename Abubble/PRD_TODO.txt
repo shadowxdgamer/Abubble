@@ -1,0 +1,189 @@
+1. Product Requirements Document (PRD)
+Product Name: ABoard (Overlay)
+Type: Android Accessibility Service & System Overlay
+Core Value: A "Brain Extension" for your existing keyboard. It reads what you are typing in any app (WhatsApp, Slack, Email), processes it with AI, and pastes the improved version back automatically.
+
+High-Level User Flow (The "Magic")
+The Trigger: A small, semi-transparent "Brain" bubble sits on the edge of the screen (like a Messenger Chat Head).
+
+Activation:
+
+Tap: Expands a small "Prompt Box" floating right over your current app.
+
+Context: The app instantly "reads" the text field you were focusing on (e.g., the email draft).
+
+The Interaction:
+
+User Types: "Make this more professional" or "Fix grammar."
+
+AI Processing: Calls OpenRouter (with DeepSeek/Reasoning support if enabled).
+
+The Result: The prompt box vanishes, and the AI's text is automatically pasted into the original text field, replacing or appending the text.
+
+Key Features
+BYOK (Bring Your Own Key): Secure storage for OpenRouter API Key.
+
+Floating UI: Built using WindowManager, independent of the app you are currently using.
+
+Context Awareness: Uses AccessibilityNodeInfo to grab text from the focused input field.
+
+DeepSeek Reasoning:
+
+Detects if the selected model supports "reasoning" (via GET /models).
+
+Shows a "Thinking" toggle in the floating prompt box.
+
+Supports multi-turn refinement (e.g., "Actually, make it shorter").
+
+2. Technical Architecture
+A. The Service (MindBubbleService)
+Type: AccessibilityService.
+
+Capabilities:
+
+retrieveWindowContent: To read screen text.
+
+performGlobalAction: To trigger Paste.
+
+SYSTEM_ALERT_WINDOW: To draw UI over other apps.
+
+B. The Data Layer (OpenRouter)
+Endpoint: POST https://openrouter.ai/api/v1/chat/completions
+
+Payload Logic:
+
+System Prompt: "You are a writing assistant. The user is typing in [App Name]. Current text: '[Context]'. Task: [User Prompt]."
+
+Reasoning Toggle: If enabled, inject {"reasoning": {"enabled": true}}.
+
+C. The UI Layer (WindowManager)
+View 1 (The Bubble): A small ImageView with a touch listener for dragging and tapping.
+
+View 2 (The Prompt Dialog): A ConstraintLayout containing:
+
+EditText (For your command).
+
+TextView (Preview of grabbed context).
+
+Spinner (Model Selector).
+
+ToggleButton (Reasoning Brain).
+
+Button (Go/Magic Wand).
+
+3. Todo List (Execution Plan)
+Phase 1: The Foundation & Permissions (Days 1-2)
+[ ] Project Setup: New Android Project (No Activity, just Service).
+
+[ ] Manifest:
+
+Add SYSTEM_ALERT_WINDOW permission.
+
+Add BIND_ACCESSIBILITY_SERVICE permission.
+
+[ ] Service Config: Create accessibility_config.xml.
+
+Set canRetrieveWindowContent="true".
+
+Set packageNames to null (listen to all apps) or specific list (WhatsApp, etc).
+
+[ ] Settings Activity: A simple screen to input the OpenRouter API Key.
+
+Phase 2: The Floating Bubble (Days 3-4)
+[ ] WindowManager Setup: In onServiceConnected, initialize WindowManager.
+
+[ ] Bubble UI: Inflate a circular layout (Brain Icon).
+
+[ ] Drag Logic: Implement OnTouchListener.
+
+ACTION_MOVE: Update layoutParams.x/y to follow finger.
+
+ACTION_UP: Snap to nearest edge (Left/Right).
+
+[ ] Tap Logic: Detect a click vs. a drag. On click -> Show Prompt Dialog.
+
+Phase 3: The Interaction Window (Days 5-6)
+[ ] Prompt Layout: Design a compact floating card (layout_prompt_dialog.xml).
+*
+
+[ ] Context Grabber:
+
+In MindBubbleService, implement findFocus(FOCUS_INPUT).
+
+Extract node.text and display it in the "Context Preview" text view.
+
+[ ] Model Selector:
+
+Fetch models from OpenRouter.
+
+Populate the Spinner.
+
+Reasoning Logic: Check supported_parameters -> Enable/Disable Brain Toggle.
+
+Phase 4: The AI & Paste Loop (Days 7-8)
+[ ] API Integration: Connect Retrofit to OpenRouter.
+
+[ ] The "Go" Button:
+
+Show Loading Spinner (Animation).
+
+Send Request: Context + User Prompt.
+
+[ ] The Injection:
+
+Receive Text.
+
+Copy to System Clipboard (ClipboardManager).
+
+Call focusNode.performAction(ACTION_PASTE).
+
+Fallback: If Paste fails, show a Toast "Copied to Clipboard".
+
+Phase 5: Polish & Safety (Day 9)
+[ ] Visibility Management:
+
+Hide Bubble when the keyboard is closed (optional, keeps screen clean).
+
+Hide Bubble when in full-screen apps (Games/YouTube).
+
+[ ] Safety: Add a "Close" (X) button on the Prompt Dialog.
+
+[ ] Markdown Parsing: Strip Markdown (like **bold**) from the AI response before pasting, as most text fields don't support it.
+
+4. Technical Reference: The Context Grabber
+This is the code that makes the "magic" happen. Put this inside your Service.
+
+Kotlin
+fun captureContextAndShowDialog() {
+    val rootNode = rootInActiveWindow ?: return
+    
+    // 1. Find the field the user was typing in
+    val focusedNode = rootNode.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
+    
+    // 2. Extract text (limit to last 500 chars for cost/speed)
+    val currentText = focusedNode?.text?.toString() ?: ""
+    val contextSnippet = currentText.takeLast(500)
+    
+    // 3. Store the node ID so we know where to paste later
+    // (Note: Nodes can expire, so we might need to findFocus again before pasting)
+    
+    // 4. Show the Floating Dialog and pre-fill the context preview
+    showPromptDialog(contextSnippet)
+}
+
+fun pasteResult(resultText: String) {
+    // 1. Copy to Clipboard
+    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    val clip = ClipData.newPlainText("ABoard AI", resultText)
+    clipboard.setPrimaryClip(clip)
+    
+    // 2. Paste
+    val rootNode = rootInActiveWindow ?: return
+    val focusedNode = rootNode.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
+    
+    if (focusedNode != null) {
+        focusedNode.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+    } else {
+        Toast.makeText(this, "Copied to clipboard!", Toast.LENGTH_SHORT).show()
+    }
+}

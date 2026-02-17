@@ -1,3 +1,22 @@
 <resources>
     <string name="app_name">Abubble</string>
+
+    <!-- Accessibility Service -->
+    <string name="accessibility_service_description">Abubble reads text from the input field you\'re typing in and uses AI to improve it. Tap the floating bubble to activate.</string>
+
+    <!-- Bubble -->
+    <string name="bubble_description">Abubble Floating Assistant</string>
+    <string name="close_bubble">Close Bubble</string>
+
+    <!-- Prompt Dialog -->
+    <string name="prompt_title">Abubble</string>
+    <string name="context_label">CAPTURED TEXT</string>
+    <string name="no_context">No text detected — type something first</string>
+    <string name="model_label">MODEL</string>
+    <string name="reasoning_label">Deep Thinking</string>
+    <string name="prompt_hint">e.g. Fix grammar, Make professional, Translate to Spanish…</string>
+    <string name="go_button">Improve</string>
+    <string name="close">Close</string>
+    <string name="on">ON</string>
+    <string name="off">OFF</string>
 </resources>
